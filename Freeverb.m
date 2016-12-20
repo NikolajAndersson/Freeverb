@@ -1,6 +1,10 @@
 classdef Freeverb < audioPlugin
-    %UNTITLED Summary of this class goes here
-    %   Detailed explanation goes here
+ % Freeverb
+    %   This is an Audio System Toolbox implementation of the Freeverb
+    %   created by Jezar at Dreampoint - http://www.dreampoint.co.uk 
+    %   The implementation is guided by Juluis O. Smith's description of
+    %   the Freeverb implementation
+    %   Webpage: 'Physical Audio Signal Processing', link: https://ccrma.stanford.edu/~jos/pasp/Freeverb.html  
     
     properties
         f = 0.82;
@@ -61,7 +65,7 @@ classdef Freeverb < audioPlugin
     
     methods
         function p = Freeverb
-            
+            % Create buffers for all coefficients
             p.combLengthL = p.combValues + 2;
             p.combLengthR = p.combValues + 2 + p.stereolength;
             
@@ -83,18 +87,10 @@ classdef Freeverb < audioPlugin
             p.bAPR = zeros(length(p.APLengthR),max(p.APLengthR)+1);
             p.aAPR = zeros(length(p.APLengthR),max(p.APLengthR)+1);
                     
-            % Calculate filter coefficients and create buffer
+            % Calculate filter coefficients 
             calcCoeff(p);
-%             for i = 1:length(p.combValues)
-%                 [p.bCombL(i,1:p.combLengthL(i)), p.aCombL(i,1:p.combLengthL(i))] = LBCFCoeffs(p.combValues(i), p.d, p.f);
-%                 [p.bCombR(i,1:p.combValues(i) + p.stereospread + 2), p.aCombR(i,1:p.combValues(i) + p.stereospread + 2)] = LBCFCoeffs(p.combValues(i) + p.stereospread, p.d, p.f);
-%             end
-%             
-%             for i = 1:length(p.APValues)
-%                 [p.bAPL(i, 1:p.APLengthL(i) + 1), p.aAPL(i, 1:p.APLengthL(i) + 1)] = APCoeffs(p.APValues(i), p.g);
-%                 [p.bAPR(i, 1:p.APValues(i) + p.stereospread + 1), p.aAPR(i, 1:p.APValues(i) + p.stereospread + 1)] = APCoeffs(p.APValues(i) + p.stereospread, p.g);
-%             end
             
+            % Create empty buffers
             p.cBufferL = zeros(max(p.combLengthL),length(p.combValues));
             p.cBufferR = zeros(max(p.combLengthR),length(p.combValues));
             p.APBufferL = zeros(max(p.APLengthL),length(p.APValues));
@@ -115,6 +111,7 @@ classdef Freeverb < audioPlugin
             cL = zeros(size(x(:,1))); cR = zeros(size(x(:,2)));
             left = zeros(size(x(:,1))); right = zeros(size(x(:,2)));
             
+            % All 8 comb filters in parallel
             for i = 1:length(p.combValues)
                 [cL, p.cBufferL(1:p.combValues(i) + 1, i)] = filter(p.bCombL(i,1:p.combLengthL(i)), p.aCombL(i,1:p.combLengthL(i)), x(:,1), p.cBufferL(1:p.combValues(i) + 1, i));
                 [cR, p.cBufferR(1:p.combValues(i) + 1 + p.stereospread, i)] = filter(p.bCombR(i,1:p.combValues(i) + p.stereospread + 2), p.aCombR(i,1:p.combValues(i) + p.stereospread + 2), x(:,2), p.cBufferR(1:p.combValues(i) + 1 + p.stereospread, i));
@@ -122,21 +119,26 @@ classdef Freeverb < audioPlugin
                 right = right + cR;
             end
             
+            % Scale down the values
             left = left*0.1;
             right = right*0.1;
             
+            % 4 allpass filters in series
             for i = 1:length(p.APValues)
                 [left, p.APBufferL(1:p.APValues(i), i)] = filter(p.bAPL(i,1:p.APLengthL(i) + 1), p.aAPL(i,1:p.APLengthL(i) + 1), left, p.APBufferL(1:p.APValues(i), i));
                 [right, p.APBufferR(1:p.APValues(i) + p.stereospread, i)] = filter(p.bAPR(i,1:p.APValues(i) + p.stereospread + 1), p.aAPR(i,1:p.APValues(i) + p.stereospread + 1), right, p.APBufferR(1:p.APValues(i) + p.stereospread, i));
             end
             
+            % Calculate separation between left and right, 0 and 1 yields maximum separation,
+            % 0.5, both sides are send to both speakers   
             wet1 = 1-p.stereoseparation; wet2 = p.stereoseparation;
             wet = [left*wet1+right*wet2 right*wet1+left*wet2];
             
+            % Mix the wet signal with the dry signal
             mix = p.Mix;
-            out = (1-mix)*x + mix*(wet*(1-p.g));
+            out = (1-mix)*x + mix*(wet*(1-p.g)); % need to scale wet down in a smart way, else gets distorted. not super smart right now
         end
-        
+        % Calculate new coeffients every time a parameter has changed
         function set.f(p, f)
             p.f = f;
             calcCoeff(p);
@@ -150,7 +152,7 @@ classdef Freeverb < audioPlugin
             calcCoeff(p);
         end
         function set.stereospread(p, s)
-            p.stereospread = floor(s); %to make sure s is an integer
+            p.stereospread = floor(s); % to make sure s is an integer
             calcCoeff(p);
         end
         function calcCoeff(p)
@@ -169,6 +171,7 @@ classdef Freeverb < audioPlugin
         end
     end
 end
+% Transfer function from Smiths website
 function [b, a] = LBCFCoeffs(m, d, f)
     % LBCF = z^-m/1-f(1-d/1-dz^-1)z^-m
     % d = damp = initialdamp * scaledamp = 0.5 * 0.4 = 0.2
