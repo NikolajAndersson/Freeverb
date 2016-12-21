@@ -111,11 +111,22 @@ classdef Freeverb < audioPlugin
             p.cBufferR = zeros(max(p.combLengthR),length(p.combValues));
             p.APBufferL = zeros(max(p.APLengthL),length(p.APValues));
             p.APBufferR = zeros(max(p.APLengthR),length(p.APValues));
+            reset(p.pCombDelay);
+            reset(p.pLowpass)
         end
-        
+        function out = pComb(obj, x)
+            in = zeros(length(x),1,'like',x);
+            in(1:end) = sum(x,2);
+            t = repmat(0.015*in, 1,16);
+            scaling = log2(7*obj.f+1)/log2(8);
+            o = output(obj.pCombDelay, t);
+            update(obj.pCombDelay, t + scaling*obj.pLowpass(o));
+            out = [ sum(o(:,1:8),2) sum(o(:,9:16),2) ];
+        end
         function out = rev(p, x)
             % for each channel
             % 4*2 parallel LBCF --> 4 AP
+            %{
             cL = zeros(size(x(:,1))); cR = zeros(size(x(:,2)));
             left = zeros(size(x(:,1))); right = zeros(size(x(:,2)));
             
@@ -130,7 +141,9 @@ classdef Freeverb < audioPlugin
             % Scale down the values
             left = left*0.1;
             right = right*0.1;
-            
+            %} 
+            comb = pComb(p, x);
+            left = comb(:,1); right = comb(:,2);
             % 4 allpass filters in series
             for i = 1:length(p.APValues)
                 [left, p.APBufferL(1:p.APValues(i), i)] = filter(p.bAPL(i,1:p.APLengthL(i) + 1), p.aAPL(i,1:p.APLengthL(i) + 1), left, p.APBufferL(1:p.APValues(i), i));
