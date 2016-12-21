@@ -44,8 +44,14 @@ classdef Freeverb < audioPlugin
         aAPR = [];
         
         stereolength = 200;
+        
+        pCombDelay
+        pLowpass
+            
     end
     properties (Constant)
+        cValues = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116];
+
         % audioPluginInterface manages the number of input/output channels
         % and uses audioPluginParameter to generate plugin UI parameters.
         PluginInterface = audioPluginInterface(...
@@ -65,6 +71,8 @@ classdef Freeverb < audioPlugin
     
     methods
         function p = Freeverb
+            p.pCombDelay = dsp.Delay([p.cValues p.cValues + 23]);
+            p.pLowpass = dsp.IIRFilter('Numerator',1-0.25, 'Denominator', [1,-0.25]);
             % Create buffers for all coefficients
             p.combLengthL = p.combValues + 2;
             p.combLengthR = p.combValues + 2 + p.stereolength;
