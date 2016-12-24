@@ -47,7 +47,11 @@ classdef Freeverb < audioPlugin
         
         pCombDelay
         pLowpass
-            
+        SamplesPerFrame
+        FrameSize
+        NumOfFrames
+        pDryBuffer
+        pWetBuffer
     end
     properties (Constant)
         cValues = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116];
@@ -59,8 +63,8 @@ classdef Freeverb < audioPlugin
             'OutputChannels',2,...
             'PluginName','Freeverb',...
             'VendorName', '', ...
-            'VendorVersion', '2.0', ...
-            'UniqueId', '1aba',...
+            'VendorVersion', '3.0', ...
+            'UniqueId', '1abb',...
             audioPluginParameter('f','DisplayName','Roomsize','Mapping',{'lin' 0 1}),...
             audioPluginParameter('d','DisplayName','Damp','Mapping',{'lin' 0.1 0.7}),...
             audioPluginParameter('g','DisplayName','Gain','Mapping',{'lin' 0.1 0.7}),...
@@ -103,6 +107,12 @@ classdef Freeverb < audioPlugin
             p.cBufferR = zeros(max(p.combLengthR),length(p.combValues));
             p.APBufferL = zeros(max(p.APLengthL),length(p.APValues));
             p.APBufferR = zeros(max(p.APLengthR),length(p.APValues));
+           
+            p.pDryBuffer = zeros(9000, 2);
+            p.pWetBuffer = p.pDryBuffer;
+            p.SamplesPerFrame = 1024;
+            p.FrameSize = 128;
+            p.NumOfFrames = ceil(p.SamplesPerFrame/p.FrameSize);
         end
         
         function reset(p)
@@ -115,7 +125,7 @@ classdef Freeverb < audioPlugin
             reset(p.pLowpass)
         end
         function out = pComb(obj, x)
-            in = zeros(length(x),1,'like',x);
+            in = zeros(size(x,1),1,'like',x);
             in(1:end) = sum(x,2);
             t = repmat(0.015*in, 1,16);
             scaling = log2(7*obj.f+1)/log2(8);
@@ -126,7 +136,7 @@ classdef Freeverb < audioPlugin
         function out = rev(p, x)
             % for each channel
             % 4*2 parallel LBCF --> 4 AP
-            %{
+           %{ 
             cL = zeros(size(x(:,1))); cR = zeros(size(x(:,2)));
             left = zeros(size(x(:,1))); right = zeros(size(x(:,2)));
             
@@ -141,7 +151,13 @@ classdef Freeverb < audioPlugin
             % Scale down the values
             left = left*0.1;
             right = right*0.1;
-            %} 
+            %}
+            if size(x,1) ~= p.SamplesPerFrame
+               p.SamplesPerFrame = size(x,1);
+               p.NumOfFrames = ceil(p.pSamplesPerFrame/p.pFrameSize);
+            end
+            
+            
             comb = pComb(p, x);
             left = comb(:,1); right = comb(:,2);
             % 4 allpass filters in series
