@@ -8,7 +8,7 @@ classdef Freeverb < audioPlugin
     
     properties
         f = 0.82; % RoomSize
-        d = 0.2;  % Damping
+        %d = 0.2;  % Damping
         g = 0.5;  % Gain
         
         stereoseparation = 0;
@@ -58,11 +58,10 @@ classdef Freeverb < audioPlugin
             'VendorVersion', '3.0', ...
             'UniqueId', '1abb',...
             audioPluginParameter('f','DisplayName','Roomsize','Mapping',{'lin' 0 1}),...
-            audioPluginParameter('d','DisplayName','Damp','Mapping',{'lin' 0.1 0.7}),...
             audioPluginParameter('g','DisplayName','Gain','Mapping',{'lin' 0.1 0.7}),...
             audioPluginParameter('stereoseparation','DisplayName','Stereoseparation','Mapping',{'lin' 0 1}),...
             audioPluginParameter('Mix','DisplayName','Mix','Mapping',{'lin' 0 1}));
-    
+            % audioPluginParameter('d','DisplayName','Damp','Mapping',{'lin' 0.1 0.7}),...
             % audioPluginParameter('stereospread','DisplayName','Stereospread','Mapping',{'lin' 0 100})
     end
     
@@ -120,7 +119,7 @@ classdef Freeverb < audioPlugin
         end
         function out = rev(p, x)
             % for each channel
-            % 4*2 parallel LBCF --> 4 AP
+            % 8*2 parallel comb filters --> 4 AP
            
             if size(x,1) ~= p.SamplesPerFrame
                p.SamplesPerFrame = size(x,1);
@@ -149,17 +148,17 @@ classdef Freeverb < audioPlugin
             
             % Mix the wet signal with the dry signal
             mix = p.Mix;
-            out = (1-mix)*x + mix*(wet*(1-p.g)); % need to scale wet down in a smart way, else gets distorted. not super smart right now
+            out = (1-mix)*x + mix*wet; 
         end
         % Calculate new coeffients every time a parameter has changed
         function set.f(p, f)
             p.f = f;
-            calcCoeff(p);
+            %calcCoeff(p);
         end
-        function set.d(p, d)
-            p.d = d;
-            calcCoeff(p);
-        end
+%         function set.d(p, d)
+%             p.d = d;
+%             calcCoeff(p);
+%         end
         function set.g(p, g)
             p.g = g;
             calcCoeff(p);
