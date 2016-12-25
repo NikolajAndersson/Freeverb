@@ -2,7 +2,7 @@ classdef Freeverb < audioPlugin
  % Freeverb
     %   This is an Audio System Toolbox implementation of the Freeverb
     %   created by Jezar at Dreampoint - http://www.dreampoint.co.uk 
-    %   The implementation is guided by Juluis O. Smith's description of
+    %   The implementation is guided by Julius O. Smith's description of
     %   the Freeverb implementation
     %   Webpage: 'Physical Audio Signal Processing', link: https://ccrma.stanford.edu/~jos/pasp/Freeverb.html  
     
@@ -64,7 +64,6 @@ classdef Freeverb < audioPlugin
             audioPluginParameter('Mix','DisplayName','Mix','Mapping',{'lin' 0 1}));
     
             % audioPluginParameter('stereospread','DisplayName','Stereospread','Mapping',{'lin' 0 100})
-
     end
     
     methods
@@ -128,13 +127,12 @@ classdef Freeverb < audioPlugin
                p.NumOfFrames = ceil(p.SamplesPerFrame/p.FrameSize);
             end
             if p.SamplesPerFrame <= 128
-                p.WetBuffer(1:p.FrameSize,:) = pComb(p, x);
+               p.WetBuffer(1:p.FrameSize,:) = pComb(p, x);
             else
                 p.DryBuffer(1:p.SamplesPerFrame, :) = x;
                 for i = 0:p.NumOfFrames-1
                     p.WetBuffer(i*p.FrameSize + 1 : (i+1)*p.FrameSize,:) = pComb(p, p.DryBuffer(i*p.FrameSize + 1 : (i+1)*p.FrameSize,:));                  
-                end  
-               % 
+                end   
             end
             
             left = p.WetBuffer(1:p.SamplesPerFrame,1); right = p.WetBuffer(1:p.SamplesPerFrame,2);
