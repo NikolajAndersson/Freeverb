@@ -37,6 +37,7 @@ classdef Freeverb < audioPlugin
         NumOfFrames
         DryBuffer
         WetBuffer
+        combBuffer = zeros(128,1);
     end
     properties(Constant, Access = private)
         % M values for Comb and allpass filters
@@ -44,7 +45,7 @@ classdef Freeverb < audioPlugin
         cValues = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116];
         stereospread = 23;
         bLow = 1-0.25;
-        aLow = [1,-0.25];
+        aLow = [1,-0.25];    
     end
     properties (Constant)
 
@@ -56,7 +57,7 @@ classdef Freeverb < audioPlugin
             'PluginName','Freeverb',...
             'VendorName', '', ...
             'VendorVersion', '3.0', ...
-            'UniqueId', '1abb',...
+            'UniqueId', '1abd',...
             audioPluginParameter('f','DisplayName','Roomsize','Mapping',{'lin' 0 1}),...
             audioPluginParameter('g','DisplayName','Gain','Mapping',{'lin' 0.1 0.7}),...
             audioPluginParameter('stereoseparation','DisplayName','Stereoseparation','Mapping',{'lin' 0 1}),...
@@ -68,10 +69,6 @@ classdef Freeverb < audioPlugin
     methods
         function p = Freeverb
             % Comb filter fron dsp class. Inspired by audioexample.FreeverbReverberator
-%             if (isempty(p.pCombDelay) && isempty(p.pLowpass))
-%                 p.pCombDelay = dsp.Delay([p.cValues p.cValues + 23]);
-%                 p.pLowpass = dsp.IIRFilter('Numerator',1-0.25, 'Denominator', [1,-0.25]);
-%             end
             p.Lowpass = dsp.IIRFilter('Numerator',p.bLow, 'Denominator', p.aLow);
             p.CombDelay = dsp.Delay([p.cValues, p.cValues + 23]);
 
@@ -103,34 +100,32 @@ classdef Freeverb < audioPlugin
             % Emptry buffer  
             p.APBufferL = zeros(max(p.APLengthL),length(p.APValues));
             p.APBufferR = zeros(max(p.APLengthR),length(p.APValues));
-           
+            p.combBuffer = zeros(128, 1);
             reset(p.CombDelay);
             reset(p.Lowpass);
         end
-        function out = pComb(obj, x)
-            in = zeros(obj.FrameSize,1,'like',x);
+        function out = parallelComb(p, x)
             l = size(x,1);
-            in(1:l) = sum(x,2);
-            t = repmat(0.015*in, 1,16);
-            scaling = log2(7*obj.f+1)/log2(8);
-            o = output(obj.CombDelay, t);
-            update(obj.CombDelay, t + scaling*obj.Lowpass(o));
+            p.combBuffer(1:l) = sum(x,2);
+            t = repmat(0.015*p.combBuffer, 1,16);
+            scaling = log2(7*p.f+1)/log2(8);
+            o = output(p.CombDelay, t);
+            update(p.CombDelay, t + scaling*p.Lowpass(o));
             out = [ sum(o(:,1:8),2) sum(o(:,9:16),2) ];
         end
         function out = rev(p, x)
             % for each channel
-            % 8*2 parallel comb filters --> 4 AP
-           
+            % 8*2 parallel comb filters --> 4 AP    
             if size(x,1) ~= p.SamplesPerFrame
                p.SamplesPerFrame = size(x,1);
                p.NumOfFrames = ceil(p.SamplesPerFrame/p.FrameSize);
             end
             if p.SamplesPerFrame <= 128
-               p.WetBuffer(1:p.FrameSize,:) = pComb(p, x);
+               p.WetBuffer(1:p.FrameSize,:) = parallelComb(p, x);
             else
                 p.DryBuffer(1:p.SamplesPerFrame, :) = x;
                 for i = 0:p.NumOfFrames-1
-                    p.WetBuffer(i*p.FrameSize + 1 : (i+1)*p.FrameSize,:) = pComb(p, p.DryBuffer(i*p.FrameSize + 1 : (i+1)*p.FrameSize,:));                  
+                    p.WetBuffer(i*p.FrameSize + 1 : (i+1)*p.FrameSize,:) = parallelComb(p, p.DryBuffer(i*p.FrameSize + 1 : (i+1)*p.FrameSize,:));                  
                 end   
             end
             
@@ -165,16 +160,16 @@ classdef Freeverb < audioPlugin
         end
 %         function set.stereospread(p, s)
 %             p.stereospread = floor(s); % to make sure s is an integer
-% %             release(p.pCombDelay);
-% %             p.pCombDelay = dsp.Delay([p.cValues p.cValues + p.stereospread]);
+%             release(p.pCombDelay);
+%             p.pCombDelay = dsp.Delay([p.cValues p.cValues + p.stereospread]);
 %             calcCoeff(p);
 %         end
         function calcCoeff(p)
             % Calculate filter coefficients
             %p.pCombDelay.Length(9:16) = p.cValues + p.stereospread;
 
-%             p.pLowpass.Numerator = 1 - p.f;
-%             p.pLowpass.Denominator = [1, -p.f];
+%             p.Lowpass.Numerator = 1 - p.f;
+%             p.Lowpass.Denominator = [1, -p.f];
             for i = 1:length(p.APValues)
                 [p.bAPL(i, 1:p.APLengthL(i) + 1), p.aAPL(i, 1:p.APLengthL(i) + 1)] = APCoeffs(p.APValues(i), p.g);
                 [p.bAPR(i, 1:p.APValues(i) + p.stereospread + 1), p.aAPR(i, 1:p.APValues(i) + p.stereospread + 1)] = APCoeffs(p.APValues(i) + p.stereospread, p.g);
