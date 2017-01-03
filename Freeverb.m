@@ -70,7 +70,7 @@ classdef Freeverb < audioPlugin
         function p = Freeverb
             % Comb filter fron dsp class. Inspired by audioexample.FreeverbReverberator
             p.Lowpass = dsp.IIRFilter('Numerator',p.bLow, 'Denominator', p.aLow);
-            p.CombDelay = dsp.Delay([p.cValues, p.cValues + 23]);
+            p.CombDelay = dsp.Delay([p.cValues, p.cValues + p.stereospread]);
 
             % Create buffers for all coefficients
             p.APLengthL = p.APValues;
