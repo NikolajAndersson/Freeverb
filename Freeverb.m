@@ -9,7 +9,7 @@ classdef Freeverb < audioPlugin
     properties
         f = 0.82; % RoomSize
         g = 0.5;  % Gain of allpass filter
-        d = 0.25;
+       
         stereoseparation = 0;
         Mix = 0.5;
     end
@@ -44,7 +44,7 @@ classdef Freeverb < audioPlugin
         cValues = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116];
         stereospread = 23; % delay between left and right channel
         % lowpass coefficients
-        bLow = 1-0.25;      % 0.25 is the damping value
+        bLow = 1-0.25; % 0.25 is the damping value
         aLow = [1,-0.25];   
     end
     properties (Constant)
@@ -159,6 +159,7 @@ classdef Freeverb < audioPlugin
                 [p.bAPR(i, 1:p.APValues(i) + p.stereospread + 1), p.aAPR(i, 1:p.APValues(i) + p.stereospread + 1)] = APCoeffs(p.APValues(i) + p.stereospread, p.g);
             end
         end
+        
         function out = process(plugin, x)
             out = rev(plugin, x);
         end
