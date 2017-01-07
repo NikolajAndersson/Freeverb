@@ -1,13 +1,13 @@
 classdef Freeverb < audioPlugin
- % Freeverb
+ % Freeverb by Nikolaj Andersson
     %   This is an Audio System Toolbox implementation of the Freeverb
     %   created by Jezar at Dreampoint - http://www.dreampoint.co.uk 
     %   The implementation is guided by Julius O. Smith's description of
-    %   the Freeverb implementation
+    %   the Freeverb implementation.
     %   Webpage: 'Physical Audio Signal Processing', link: https://ccrma.stanford.edu/~jos/pasp/Freeverb.html  
     
     properties
-        f = 0.82; % RoomSize
+        f = 0.84; % RoomSize
         g = 0.5;  % Gain of allpass filter
        
         stereoseparation = 0;
@@ -55,10 +55,10 @@ classdef Freeverb < audioPlugin
             'OutputChannels',2,...
             'PluginName','Freeverb',...
             'VendorName', '', ...
-            'VendorVersion', '3.0', ...
+            'VendorVersion', '4.0', ...
             'UniqueId', '1abf',...
-            audioPluginParameter('f','DisplayName','Roomsize','Mapping',{'lin' 0 1}),...
-            audioPluginParameter('g','DisplayName','Gain','Mapping',{'lin' 0.1 0.7}),...
+            audioPluginParameter('f','DisplayName','RoomSize','Mapping',{'lin' 0 1}),...
+            audioPluginParameter('g','DisplayName','AllpassGain','Mapping',{'lin' 0.1 0.7}),...
             audioPluginParameter('stereoseparation','DisplayName','Stereoseparation','Mapping',{'lin' 0 1}),...
             audioPluginParameter('Mix','DisplayName','Mix','Mapping',{'lin' 0 1}));
     end
@@ -106,10 +106,10 @@ classdef Freeverb < audioPlugin
             l = size(x,1); % if the size of x is lower than 128 samples
             p.combBuffer(1:l) = sum(x,2); % sum left and right and add them to the buffer
             t = repmat(0.015*p.combBuffer, 1,16); % scale down the amplitude of the signal and make 16 copies
-            scaling = log2(7*p.f+1)/log2(8); % scaling of the feedback component, needs to be less than one for stability 
-            o = output(p.CombDelay, t); 
-            update(p.CombDelay, t + scaling*p.Lowpass(o));
-            out = [ sum(o(:,1:8),2) sum(o(:,9:16),2) ]; % sum the left 1:8 and right 9:16 together 
+            scaling = log2(7*p.f+1)/log2(8); % mapping of the feedback coefficient, needs to be less than one for stability 
+            o = output(p.CombDelay, t); % Delay the input and create delay variable o
+            update(p.CombDelay, t + scaling*p.Lowpass(o)); % Lowpass filter the delay, scale it by mapped f and add the dry input
+            out = [ sum(o(:,1:8),2) sum(o(:,9:16),2) ]; % sum the columns together - 1:8 for left and 9:16 for right  
         end
         function out = rev(p, x)
             % for each channel
