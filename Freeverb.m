@@ -62,7 +62,6 @@ classdef Freeverb < audioPlugin
             audioPluginParameter('stereoseparation','DisplayName','Stereoseparation','Mapping',{'lin' 0 1}),...
             audioPluginParameter('Mix','DisplayName','Mix','Mapping',{'lin' 0 1}));
     end
-    
     methods
         function p = Freeverb
             % Comb filter implementation from dsp class. Inspired by audioexample.FreeverbReverberator
@@ -93,7 +92,6 @@ classdef Freeverb < audioPlugin
             p.FrameSize = 128;
             p.NumOfFrames = ceil(p.SamplesPerFrame/p.FrameSize);
         end
-        
         function reset(p)
             % Emptry buffer  
             p.APBufferL = zeros(max(p.APLengthL),length(p.APValues));
@@ -146,20 +144,17 @@ classdef Freeverb < audioPlugin
         function set.f(p, f)
             p.f = f;
         end
-
         function set.g(p, g)
             p.g = g;
             calcCoeff(p); % Calculate new coeffients every time a parameter has changed
         end
-
         function calcCoeff(p)
             % Calculate filter coefficients           
             for i = 1:length(p.APValues)
                 [p.bAPL(i, 1:p.APLengthL(i) + 1), p.aAPL(i, 1:p.APLengthL(i) + 1)] = APCoeffs(p.APValues(i), p.g);
                 [p.bAPR(i, 1:p.APValues(i) + p.stereospread + 1), p.aAPR(i, 1:p.APValues(i) + p.stereospread + 1)] = APCoeffs(p.APValues(i) + p.stereospread, p.g);
             end
-        end
-        
+        end      
         function out = process(plugin, x)
             out = rev(plugin, x);
         end
