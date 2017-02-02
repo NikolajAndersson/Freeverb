@@ -7,19 +7,19 @@
    <key>CFBundleExecutable</key>
    <string>Freeverb</string>
    <key>CFBundleIdentifier</key>
-   <string>1abf.Freeverb</string>
+   <string>1abg.Freeverb</string>
    <key>CFBundleInfoDictionaryVersion</key>
-   <string>0.4.0</string>
+   <string>0.5.0</string>
    <key>CFBundleName</key>
    <string>Freeverb</string>
    <key>CFBundlePackageType</key>
    <string>BNDL</string>
    <key>CFBundleShortVersionString</key>
-   <string>0.4.0</string>
+   <string>0.5.0</string>
    <key>CFBundleSignature</key>
-   <string>1abf</string>
+   <string>1abg</string>
    <key>CFBundleVersion</key>
-   <string>0.4.0</string>
+   <string>0.5.0</string>
    <key>LSMinimumSystemVersion</key>
    <string>10.9.0</string>
 </dict>
